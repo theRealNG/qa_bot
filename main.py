@@ -21,37 +21,39 @@ class UserStories(BaseModel):
     user_stories: List[UserStory]
 
 
-webpage_content = WebpageScreenshot("https://en.wikipedia.org/wiki/Main_Page")
+def run_user_stories():
+    webpage_content = WebpageScreenshot("https://en.wikipedia.org/wiki/Main_Page")
 
-parser = JsonOutputParser(pydantic_object=UserStories)
-prompt = ChatPromptTemplate.from_messages([
-    SystemMessage(
-        "You are a QA Engineer at a software company. "
-        "Your task is to perform browser tests to check if the website meets the given user stories. "
-        "If the user story is met return the user story followed by true/false based on if it is satisfied or not."
-        "If a user story is not satisfied return the reason for failure."
-        f"Format Instructions: {parser.get_format_instructions()}"
-    ),
-    HumanMessage(
-        content=[
-            {"type": "text", "text": (
-                "User Story: As a User, I should be able to see Today's feature article."
-                "User Story: As a User, I should be able to see 'In the news' section."
-                "User Story: As a User, I should be able to see and option to Sign Up."
-                "User Story: As a User, I should be able to see an option to Log In"
-            )},
-            {"type": "image_url", "image_url": {
-                "url": f"data:image/png;base64,{webpage_content}",
-                "detail": "auto",
-            }}
-        ]
-    )
-])
+    parser = JsonOutputParser(pydantic_object=UserStories)
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(
+            "You are a QA Engineer at a software company. "
+            "Your task is to perform browser tests to check if the website meets the given user stories. "
+            "If the user story is met return the user story followed by true/false based on if it is satisfied or not."
+            "If a user story is not satisfied return the reason for failure."
+            f"Format Instructions: {parser.get_format_instructions()}"
+        ),
+        HumanMessage(
+            content=[
+                {"type": "text", "text": (
+                    "User Story: As a User, I should be able to see Today's feature article."
+                    "User Story: As a User, I should be able to see 'In the news' section."
+                    "User Story: As a User, I should be able to see and option to Sign Up."
+                    "User Story: As a User, I should be able to see an option to Log In"
+                )},
+                {"type": "image_url", "image_url": {
+                    "url": f"data:image/png;base64,{webpage_content}",
+                    "detail": "auto",
+                }}
+            ]
+        )
+    ])
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
-chain = (prompt | llm)
+    chain = (prompt | llm)
 
-response = chain.invoke(input={})
-print("Response: ", response)
+    response = chain.invoke(input={})
+    print("Response: ", response)
 
+run_user_stories()
