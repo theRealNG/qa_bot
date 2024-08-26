@@ -1,0 +1,10 @@
+__pycache__/
+.env
+.DS_Store
+venv
+article_suggestions.json
+evaluated_articles.json
+final_articles.json
+learning_profile.json
+pitched_articles.json
+webpageScreenshot.png

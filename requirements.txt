@@ -1,0 +1,6 @@
+python-dotenv
+langgraph
+langchain-openai
+playwright
+langchain
+playwright_stealth
