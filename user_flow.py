@@ -181,6 +181,33 @@ def parse(text: str) -> dict:
         return {"action": "retry", "args": f"Could not parse LLM Output: {text}"}
     action_block = text.strip().split("\n")[-1]
 
+    pattern = r"Thought: (.+)\n"
+    match = re.search(pattern, text)
+    thought_content = ""
+    if match:
+        thought_content = match.group(1)
+        print(thought_content)
+    else:
+        print("Thought content not found.")
+
+    pattern = r"Completed User Story: (.+)\n"
+    match = re.search(pattern, text)
+    completed_user_story_content = ""
+    if match:
+        completed_user_story_content = match.group(1)
+        print(completed_user_story_content)
+    else:
+        print("Completed User Story content not found.")
+
+    pattern = r"Pending User Story: (.+)\n"
+    match = re.search(pattern, text)
+    pending_user_story_content = ""
+    if match:
+        pending_user_story_content = match.group(1)
+        print(pending_user_story_content)
+    else:
+        print("Pending User Story content not found.")
+
     action_str = action_block[len(action_prefix):]
     split_output = action_str.split(" ", 1)
     if len(split_output) == 1:
@@ -192,7 +219,8 @@ def parse(text: str) -> dict:
         action_input = [
             inp.strip().strip("[]") for inp in action_input.strip().split(";")
         ]
-    return {"action": action, "args": action_input}
+    return {"action": action, "args": action_input, "thought": thought_content,
+            "completed_user_story": completed_user_story_content, "pending_user_story": pending_user_story_content }
 
 
 prompt = ChatPromptTemplate.from_messages([
@@ -216,10 +244,12 @@ prompt = ChatPromptTemplate.from_messages([
                     "2) Select strategically to minimize time wasted.\n\n"
                     "Your reply should strictly follow the format:\n\n"
                     "Thought: {{Your brief thoughts (briefly summarize the info that will help ANSWER)}}\n"
+                    "Completed User Story: {{Portion of the User Story completed by executing the action.}}\n"
+                    "Pending User Story: {{Portion of the User Story that is left to test after executing the action.}}\n"
                     "Action: {{One Action format you choose}}\n"
                     "Then the User will provide:\nObservation: {{A labeled screenshot Given by User}}\n\n"
                     "Your ultimate goal is to perform browser tests to check if the website meets the given user stories. "
-                    "If the user story is met return the user story followed by true/false based on if it is satisfied or not."
+                    "If there is no pending user story to test and ff the user story is met in total return the user story followed by true/false based on if it is satisfied or not."
                     "If a user story is not satisfied return the reason for failure."
                 )
             )]),
@@ -251,6 +281,9 @@ def update_scratchpad(state: AgentState):
     else:
         txt = "Previous action observations:\n"
         step = 1
+    txt += f"\nAI Thought: {state['prediction']['thought']}"
+    txt += f"\nCompleted User Story: {state['prediction']['completed_user_story']}"
+    txt += f"\nPending User Story: {state['prediction']['pending_user_story']}"
     txt += f"\n{step}. {state['observation']}"
 
     return {**state, "scratchpad": [SystemMessage(content=txt)]}
@@ -311,24 +344,13 @@ async def AsyncWebpageBroswer(url):
     page = await browser.new_page()
     _ = await page.goto(url)
 
-# async def AsyncWebpageBroswer(url):
-#     async with async_playwright() as p:
-#         browser = await p.chromium.launch(headless=True)
-#         page = await browser.new_page()
-#         await page.goto(url)
-
-#         return page
-
-# page = asyncio.run(AsyncWebpageBroswer("https://en.wikipedia.org/wiki/Main_Page"))
-
 
 async def call_agent(question: str, page, max_steps: int = 50):
     browser = await async_playwright().start()
     # We will set headless=False so we can watch the agent navigate the web.
     browser = await browser.chromium.launch(headless=False, args=None)
     page = await browser.new_page()
-    _ = await page.goto("https://en.wikipedia.org/wiki/Main_Page")
-    # page = await asyncio.run(AsyncWebpageBroswer("https://en.wikipedia.org/wiki/Main_Page"))
+    _ = await page.goto("https://www.theverge.com/")
     event_stream = graph.astream(
         {
             "page": page,
@@ -356,8 +378,5 @@ async def call_agent(question: str, page, max_steps: int = 50):
     return final_answer
 
 res = asyncio.run(call_agent(
-    "Your task is to perform browser tests to check if the website meets the given user stories. "
-    "If the user story is met return the user story followed by true/false based on if it is satisfied or not."
-    "If a user story is not satisfied return the reason for failure."
-    "User Story: As a User, when I click on 'Full article' on the Feature Article I should be taken to the article page.", "a"))
+    "User Story: As a User, when I click on an 'Article' headline on the Top Stories I should be taken to the particular story page.", ""))
 print(f"Final response: {res}")
