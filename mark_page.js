@@ -31,46 +31,29 @@ function unmarkPage() {
 function markPage() {
   unmarkPage();
 
-  var bodyRect = document.body.getBoundingClientRect();
+  // var bodyRect = document.body.getBoundingClientRect();
 
   var items = Array.prototype.slice
     .call(document.querySelectorAll("*"))
     .map(function (element) {
-      var vw = Math.max(
-        document.documentElement.clientWidth || 0,
-        window.innerWidth || 0
-      );
-      var vh = Math.max(
-        document.documentElement.clientHeight || 0,
-        window.innerHeight || 0
-      );
+      // Get the bounding rect of the element relative to the viewport
+      var elementRect = element.getBoundingClientRect();
+
+      // Element text content, type, and aria-label
       var textualContent = element.textContent.trim().replace(/\s{2,}/g, " ");
       var elementType = element.tagName.toLowerCase();
       var ariaLabel = element.getAttribute("aria-label") || "";
 
-      var rects = [...element.getClientRects()]
-        .filter((bb) => {
-          var center_x = bb.left + bb.width / 2;
-          var center_y = bb.top + bb.height / 2;
-          var elAtCenter = document.elementFromPoint(center_x, center_y);
+      const rect = {
+        left: elementRect.left,
+        top: elementRect.top,
+        right: elementRect.right,
+        bottom: elementRect.bottom,
+        width: elementRect.width,
+        height: elementRect.height,
+      };
 
-          return elAtCenter === element || element.contains(elAtCenter);
-        })
-        .map((bb) => {
-          const rect = {
-            left: Math.max(0, bb.left),
-            top: Math.max(0, bb.top),
-            right: Math.min(vw, bb.right),
-            bottom: Math.min(vh, bb.bottom),
-          };
-          return {
-            ...rect,
-            width: rect.right - rect.left,
-            height: rect.bottom - rect.top,
-          };
-        });
-
-      var area = rects.reduce((acc, rect) => acc + rect.width * rect.height, 0);
+      var area = elementRect.width * elementRect.height;
 
       return {
         element: element,
@@ -85,7 +68,7 @@ function markPage() {
           element.tagName === "IFRAME" ||
           element.tagName === "VIDEO",
         area,
-        rects,
+        rects: [rect],
         text: textualContent,
         type: elementType,
         ariaLabel: ariaLabel,
@@ -121,7 +104,7 @@ function markPage() {
       newElement.style.height = bbox.height + "px";
       newElement.style.pointerEvents = "none";
       newElement.style.boxSizing = "border-box";
-      newElement.style.zIndex = 2147483647;
+      newElement.style.zIndex = "2147483647";
       // newElement.style.background = `${borderColor}80`;
 
       // Add floating label at the corner
